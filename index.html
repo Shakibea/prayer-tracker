@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monthly Prayer Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- Resource Hints for faster connections -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -15,6 +19,8 @@
 
         .prayer-button {
             transition: all 0.2s ease-in-out;
+            -webkit-tap-highlight-color: transparent; /* Remove default tap highlight */
+            touch-action: manipulation; /* Improve touch responsiveness */
         }
 
         .prayer-button:not(.checked):hover {
@@ -63,6 +69,9 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f9fafb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PrayerTracker">
 </head>
 <body class="h-full">
     <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'prayer-tracker-cache-v1';
+const CACHE_NAME = 'prayer-tracker-cache-v6'; // Incremented cache version
 const urlsToCache = [
   './',
   './index.html',
@@ -13,47 +13,34 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened cache and caching assets');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Cache and return requests
+// Stale-while-revalidate strategy
 self.addEventListener('fetch', event => {
-  // Ignore non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      // If the resource is in the cache, return it.
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      // If not in cache, try to fetch it from the network.
-      return fetch(event.request).then(networkResponse => {
-        // If the fetch is successful, clone it, cache it, and return it.
-        return caches.open(CACHE_NAME).then(cache => {
-          // We can only cache valid responses. Opaque responses are for third-party assets.
-          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(response => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          // If we get a valid response, update the cache
+          if (networkResponse && networkResponse.status === 200) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
         });
-      }).catch(error => {
-        // If the fetch fails (e.g., user is offline), log the error but don't crash.
-        // This allows the rest of the cached app to function.
-        console.log('Fetch failed; user is likely offline.', event.request.url, error);
-        // We could optionally return a fallback asset here if we had one.
+
+        // Return the cached response immediately if it exists,
+        // otherwise wait for the network response.
+        return response || fetchPromise;
       });
     })
   );
 });
 
-// Update a service worker
+// Update a service worker and remove old caches
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -61,6 +48,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
