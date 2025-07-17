@@ -27,28 +27,27 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.match(event.request).then(response => {
-        // Return response from cache if found
-        if (response) {
-          return response;
-        }
+    caches.match(event.request).then(cachedResponse => {
+      // If the resource is in the cache, return it.
+      if (cachedResponse) {
+        return cachedResponse;
+      }
 
-        // If not in cache, fetch from network
-        return fetch(event.request).then(networkResponse => {
-          // Check if we received a valid response
-          // We can't check the status of opaque responses, but we can still cache them.
+      // If not in cache, try to fetch it from the network.
+      return fetch(event.request).then(networkResponse => {
+        // If the fetch is successful, clone it, cache it, and return it.
+        return caches.open(CACHE_NAME).then(cache => {
+          // We can only cache valid responses. Opaque responses are for third-party assets.
           if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
-            const responseToCache = networkResponse.clone();
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, networkResponse.clone());
           }
-          
           return networkResponse;
         });
+      }).catch(error => {
+        // If the fetch fails (e.g., user is offline), log the error but don't crash.
+        // This allows the rest of the cached app to function.
+        console.log('Fetch failed; user is likely offline.', event.request.url, error);
+        // We could optionally return a fallback asset here if we had one.
       });
     })
   );
