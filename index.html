@@ -51,9 +51,25 @@
             transform: scale(1);
             opacity: 1;
         }
+
+        .btn-active {
+            background-color: #10b981; /* Emerald-500 */
+            color: white;
+        }
+
+        .btn-inactive {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #4b5563; /* gray-800 */
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <!-- 
+        Tailwind CSS is used via CDN for development simplicity. 
+        For production, it's recommended to install Tailwind CSS as a PostCSS plugin 
+        or use the Tailwind CLI to build and purge unused styles for optimal performance and file size.
+        More info: https://tailwindcss.com/docs/installation
+    -->
     <script src="https://cdn.tailwindcss.com/3.4.3"></script>
     <script>
       tailwind.config = {
@@ -70,22 +86,51 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f9fafb">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="data:,">
     <meta name="apple-mobile-web-app-title" content="PrayerTracker">
 </head>
 <body class="h-full">
     <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         
         <header class="text-center mb-10">
-            <h1 id="month-header" class="text-4xl font-bold tracking-tight text-gray-900"></h1>
+            <div class="flex items-center justify-center space-x-4">
+                <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <h1 id="month-header" class="text-4xl font-bold tracking-tight text-gray-900 w-64"></h1>
+                <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
             <p class="mt-2 text-lg text-gray-600">Track your daily prayers with ease.</p>
-        </header>
+                <div class="mt-6 flex justify-center space-x-4">
+                    <button id="monthly-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-active">Monthly View</button>
+                    <button id="annual-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-inactive">Annual View</button>
+                </div>
+            </header>
 
-        <main id="prayer-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Day cards will be dynamically injected here -->
-        </main>
+            <main id="prayer-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Day cards will be dynamically injected here -->
+            </main>
+
+            <div id="annual-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden">
+                <!-- Month summary cards will be dynamically injected here -->
+            </div>
 
     </div>
+
+    <!-- Go to Today Floating Action Button -->
+    <button id="goto-today-btn" class="fixed bottom-6 right-6 bg-emerald-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-emerald-600 transition-transform transform active:scale-95">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+    </button>
 
     <script>
         if ('serviceWorker' in navigator) {
@@ -98,87 +143,210 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', async function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const grid = document.getElementById('prayer-grid');
             const monthHeader = document.getElementById('month-header');
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
+            const prevMonthBtn = document.getElementById('prev-month-btn');
+            const nextMonthBtn = document.getElementById('next-month-btn');
+            const gotoTodayBtn = document.getElementById('goto-today-btn');
+            const monthlyViewBtn = document.getElementById('monthly-view-btn');
+            const annualViewBtn = document.getElementById('annual-view-btn');
+            const annualGrid = document.getElementById('annual-grid');
+            
+            let displayedDate = new Date();
+            let currentView = 'monthly'; // 'monthly' or 'annual'
+
             const prayers = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'];
-            const storageKey = `prayerTrackerData_${year}_${month}`;
 
-            monthHeader.textContent = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            async function renderMonth(year, month) {
+                // 1. Clear the grid and update header
+                while (grid.firstChild) {
+                    grid.removeChild(grid.firstChild);
+                }
+                const date = new Date(year, month);
+                monthHeader.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            let prayerData = await localforage.getItem(storageKey) || {};
+                // 2. Get data for the new month
+                const storageKey = `prayerTrackerData_${year}_${month}`;
+                let prayerData = await localforage.getItem(storageKey) || {};
 
-            function saveData() {
-                localforage.setItem(storageKey, prayerData);
-            }
-
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                const dateKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-                if (!prayerData[dateKey]) {
-                    prayerData[dateKey] = Array(prayers.length).fill(false);
+                function saveData() {
+                    localforage.setItem(storageKey, prayerData);
                 }
 
-                const dayCard = document.createElement('div');
-                dayCard.className = 'bg-white rounded-2xl shadow-md p-5 flex flex-col';
+                // 3. Render all days for the month
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const currentDate = new Date(year, month, day);
+                    const dateKey = currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    if (!prayerData[dateKey]) {
+                        prayerData[dateKey] = Array(prayers.length).fill(false);
+                    }
+
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'bg-white rounded-2xl shadow-md p-5 flex flex-col';
+                    
+                    // Highlight today's card
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayCard.id = 'today-card';
+                        dayCard.classList.add('ring-2', 'ring-emerald-500', 'shadow-lg');
+                    }
+
+                    const dateString = currentDate.toLocaleDateString('en-US', { day: 'numeric' });
+                    const dayString = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+
+                    dayCard.innerHTML = `
+                        <div class="flex justify-between items-center mb-4 border-b pb-3">
+                            <div class="text-2xl font-bold text-gray-800">${dateString}</div>
+                            <div class="text-md font-semibold text-gray-500">${dayString}</div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-x-2">
+                            ${prayers.map((prayer, index) => `
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm font-medium text-gray-600 mb-2">${prayer}</div>
+                                    <button 
+                                        data-day="${dateKey}" 
+                                        data-prayer-index="${index}" 
+                                        aria-label="Mark ${prayer} as prayed for ${dateKey}"
+                                        class="prayer-button w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-white"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="check-icon h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    grid.appendChild(dayCard);
+                }
+
+                // 4. Add event listeners
+                const prayerButtons = document.querySelectorAll('.prayer-button');
+                prayerButtons.forEach(button => {
+                    const dateKey = button.dataset.day;
+                    const prayerIndex = parseInt(button.dataset.prayerIndex, 10);
+
+                    if (prayerData[dateKey] && prayerData[dateKey][prayerIndex]) {
+                        button.classList.add('checked');
+                    }
+
+                    button.addEventListener('click', () => {
+                        const isChecked = button.classList.toggle('checked');
+                        prayerData[dateKey][prayerIndex] = isChecked;
+                        saveData();
+                    });
+                });
                 
-                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-                    dayCard.classList.add('ring-2', 'ring-emerald-500', 'shadow-lg');
-                }
-
-                const dateString = date.toLocaleDateString('en-US', { day: 'numeric' });
-                const dayString = date.toLocaleDateString('en-US', { weekday: 'long' });
-
-                dayCard.innerHTML = `
-                    <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <div class="text-2xl font-bold text-gray-800">${dateString}</div>
-                        <div class="text-md font-semibold text-gray-500">${dayString}</div>
-                    </div>
-                    <div class="grid grid-cols-5 gap-x-2">
-                        ${prayers.map((prayer, index) => `
-                            <div class="flex flex-col items-center">
-                                <div class="text-sm font-medium text-gray-600 mb-2">${prayer}</div>
-                                <button 
-                                    data-day="${dateKey}" 
-                                    data-prayer-index="${index}" 
-                                    aria-label="Mark ${prayer} as prayed for ${dateKey}"
-                                    class="prayer-button w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-white"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="check-icon h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-
-                grid.appendChild(dayCard);
+                saveData();
             }
 
-            const prayerButtons = document.querySelectorAll('.prayer-button');
-            prayerButtons.forEach(button => {
-                const dateKey = button.dataset.day;
-                const prayerIndex = parseInt(button.dataset.prayerIndex, 10);
+            async function renderAnnualView(year) {
+                annualGrid.innerHTML = '';
+                monthHeader.textContent = `Annual Overview - ${year}`;
 
-                if (prayerData[dateKey] && prayerData[dateKey][prayerIndex]) {
-                    button.classList.add('checked');
+                const today = new Date();
+                const monthPromises = [];
+                const storageKeys = [];
+
+                for (let month = 0; month < 12; month++) {
+                    const storageKey = `prayerTrackerData_${year}_${month}`;
+                    storageKeys.push(storageKey);
+                    monthPromises.push(localforage.getItem(storageKey));
                 }
 
-                button.addEventListener('click', () => {
-                    const isChecked = button.classList.toggle('checked');
-                    prayerData[dateKey][prayerIndex] = isChecked;
-                    saveData();
+                const allPrayerData = await Promise.all(monthPromises);
+
+                for (let month = 0; month < 12; month++) {
+                    const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
+                    let prayerData = allPrayerData[month] || {};
+
+                    let totalPrayers = 0;
+                    let completedPrayers = 0;
+
+                    for (const dateKey in prayerData) {
+                        if (prayerData.hasOwnProperty(dateKey)) {
+                            const dailyPrayers = prayerData[dateKey];
+                            totalPrayers += dailyPrayers.length;
+                            completedPrayers += dailyPrayers.filter(p => p).length;
+                        }
+                    }
+
+                    const completionPercentage = totalPrayers > 0 ? Math.round((completedPrayers / totalPrayers) * 100) : 0;
+
+                    const monthCard = document.createElement('div');
+                    monthCard.className = 'bg-white rounded-2xl shadow-md p-5 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-shadow';
+                    monthCard.innerHTML = `
+                        <div class="text-2xl font-bold text-gray-800 mb-2">${monthName}</div>
+                        <div class="text-lg text-gray-600">${completionPercentage}% Completed</div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                            <div class="bg-emerald-500 h-2.5 rounded-full" style="width: ${completionPercentage}%"></div>
+                        </div>
+                    `;
+                    monthCard.addEventListener('click', () => {
+                        displayedDate = new Date(year, month);
+                        switchView('monthly');
+                    });
+                    annualGrid.appendChild(monthCard);
+                }
+            }
+
+            function switchView(view) {
+                currentView = view;
+                if (currentView === 'monthly') {
+                    grid.classList.remove('hidden');
+                    annualGrid.classList.add('hidden');
+                    monthlyViewBtn.classList.add('btn-active');
+                    monthlyViewBtn.classList.remove('btn-inactive');
+                    annualViewBtn.classList.remove('btn-active');
+                    annualViewBtn.classList.add('btn-inactive');
+                    renderMonth(displayedDate.getFullYear(), displayedDate.getMonth());
+                } else {
+                    grid.classList.add('hidden');
+                    annualGrid.classList.remove('hidden');
+                    annualViewBtn.classList.add('btn-active');
+                    annualViewBtn.classList.remove('btn-inactive');
+                    monthlyViewBtn.classList.remove('btn-active');
+                    monthlyViewBtn.classList.add('btn-inactive');
+                    renderAnnualView(displayedDate.getFullYear());
+                }
+            }
+
+            function changeMonth(offset) {
+                displayedDate.setMonth(displayedDate.getMonth() + offset);
+                renderMonth(displayedDate.getFullYear(), displayedDate.getMonth());
+            }
+
+            function scrollToToday() {
+                const todayCard = document.getElementById('today-card');
+                if (todayCard) {
+                    todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // --- Event Listeners ---
+            prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+            nextMonthBtn.addEventListener('click', () => changeMonth(1));
+            
+            monthlyViewBtn.addEventListener('click', () => switchView('monthly'));
+            annualViewBtn.addEventListener('click', () => switchView('annual'));
+
+            gotoTodayBtn.addEventListener('click', () => {
+                displayedDate = new Date(); // Reset to current date
+                switchView('monthly'); // Always go to monthly view when clicking 'Go to Today'
+                renderMonth(displayedDate.getFullYear(), displayedDate.getMonth()).then(() => {
+                    // Ensure the card is rendered before scrolling
+                    setTimeout(scrollToToday, 50);
                 });
             });
-            
-            saveData();
+
+            // --- Initial Load ---
+            switchView('monthly').then(() => {
+                setTimeout(scrollToToday, 100);
+            });
         });
     </script>
 </body>

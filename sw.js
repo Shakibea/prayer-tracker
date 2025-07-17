@@ -2,10 +2,7 @@ const CACHE_NAME = 'prayer-tracker-cache-v6'; // Incremented cache version
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json',
-  'https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js',
-  'https://cdn.tailwindcss.com/3.4.3',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+  './manifest.json'
 ];
 
 // Install a service worker
