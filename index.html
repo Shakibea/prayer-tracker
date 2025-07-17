@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Prayer Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .prayer-button {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .prayer-button:not(.checked):hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
+
+        .prayer-button:active {
+            transform: scale(0.95);
+        }
+
+        .prayer-button .check-icon {
+            transform: scale(0.5);
+            opacity: 0;
+            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+        }
+
+        .prayer-button.checked {
+            background-color: #10b981; /* Emerald-500 */
+            color: white;
+            font-weight: 500;
+        }
+
+        .prayer-button.checked:hover {
+            background-color: #059669; /* Emerald-600 */
+        }
+
+        .prayer-button.checked .check-icon {
+            transform: scale(1);
+            opacity: 1;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.3"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          }
+        }
+      }
+    </script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f9fafb">
+</head>
+<body class="h-full">
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-10">
+            <h1 id="month-header" class="text-4xl font-bold tracking-tight text-gray-900"></h1>
+            <p class="mt-2 text-lg text-gray-600">Track your daily prayers with ease.</p>
+        </header>
+
+        <main id="prayer-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Day cards will be dynamically injected here -->
+        </main>
+
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const grid = document.getElementById('prayer-grid');
+            const monthHeader = document.getElementById('month-header');
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const prayers = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'];
+            const storageKey = `prayerTrackerData_${year}_${month}`;
+
+            monthHeader.textContent = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            let prayerData = await localforage.getItem(storageKey) || {};
+
+            function saveData() {
+                localforage.setItem(storageKey, prayerData);
+            }
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                if (!prayerData[dateKey]) {
+                    prayerData[dateKey] = Array(prayers.length).fill(false);
+                }
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'bg-white rounded-2xl shadow-md p-5 flex flex-col';
+                
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayCard.classList.add('ring-2', 'ring-emerald-500', 'shadow-lg');
+                }
+
+                const dateString = date.toLocaleDateString('en-US', { day: 'numeric' });
+                const dayString = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+                dayCard.innerHTML = `
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <div class="text-2xl font-bold text-gray-800">${dateString}</div>
+                        <div class="text-md font-semibold text-gray-500">${dayString}</div>
+                    </div>
+                    <div class="grid grid-cols-5 gap-x-2">
+                        ${prayers.map((prayer, index) => `
+                            <div class="flex flex-col items-center">
+                                <div class="text-sm font-medium text-gray-600 mb-2">${prayer}</div>
+                                <button 
+                                    data-day="${dateKey}" 
+                                    data-prayer-index="${index}" 
+                                    aria-label="Mark ${prayer} as prayed for ${dateKey}"
+                                    class="prayer-button w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-white"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="check-icon h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                grid.appendChild(dayCard);
+            }
+
+            const prayerButtons = document.querySelectorAll('.prayer-button');
+            prayerButtons.forEach(button => {
+                const dateKey = button.dataset.day;
+                const prayerIndex = parseInt(button.dataset.prayerIndex, 10);
+
+                if (prayerData[dateKey] && prayerData[dateKey][prayerIndex]) {
+                    button.classList.add('checked');
+                }
+
+                button.addEventListener('click', () => {
+                    const isChecked = button.classList.toggle('checked');
+                    prayerData[dateKey][prayerIndex] = isChecked;
+                    saveData();
+                });
+            });
+            
+            saveData();
+        });
+    </script>
+</body>
+</html>
