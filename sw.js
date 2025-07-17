@@ -1,8 +1,12 @@
-const CACHE_NAME = 'prayer-tracker-cache-v6'; // Incremented cache version
+const CACHE_NAME = 'prayer-tracker-cache-v8'; // Incremented cache version
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './app.js',
+  './manifest.json',
+  './icons/icon-192x192.svg',
+  './icons/icon-512x512.svg',
+  './icons/apple-touch-icon.svg'
 ];
 
 // Install a service worker
