@@ -1,13 +1,53 @@
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+// --- Service Worker Update Flow ---
+function handleServiceWorkerUpdates() {
+    if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, err => {
-            console.log('ServiceWorker registration failed: ', err);
+            // A new service worker has been found
+            registration.onupdatefound = () => {
+                const installingWorker = registration.installing;
+                if (installingWorker == null) {
+                    return;
+                }
+                installingWorker.onstatechange = () => {
+                    // A new service worker has been installed and is waiting to activate
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('New content is available and will be used when all tabs for this page are closed.');
+                        showUpdateBanner(registration);
+                    }
+                };
+            };
+        }).catch(error => {
+            console.error('Error during service worker registration:', error);
         });
-    });
+
+        let refreshing;
+        // Detects when the new service worker has taken control and reloads the page
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            window.location.reload();
+            refreshing = true;
+        });
+    }
 }
 
+function showUpdateBanner(registration) {
+    const updateBanner = document.getElementById('update-banner');
+    const reloadButton = document.getElementById('reload-button');
+
+    if (!updateBanner || !reloadButton) return;
+
+    updateBanner.classList.remove('hidden');
+
+    reloadButton.onclick = () => {
+        // Send a message to the waiting service worker to skip waiting
+        registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    };
+}
+
+// Initialize the service worker update handling
+handleServiceWorkerUpdates();
+
+// --- Original App Logic ---
 document.addEventListener('DOMContentLoaded', function () {
     const grid = document.getElementById('prayer-grid');
     const monthHeader = document.getElementById('month-header');
