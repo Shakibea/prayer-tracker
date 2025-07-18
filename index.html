@@ -45,26 +45,25 @@
 <body class="h-full">
     <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         
-        <header class="sticky top-0 z-10 bg-gray-50 text-center py-4 shadow-sm">
-            <div class="flex items-center justify-center space-x-4">
-                <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200">
+        <header class="sticky top-0 z-10 bg-gray-50 shadow-sm h-32 flex flex-col items-center justify-center p-4">
+            <div class="flex items-center justify-center w-full">
+                <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200 flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <h1 id="month-header" class="text-4xl font-bold tracking-tight text-gray-900 w-64"></h1>
-                <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200">
+                <h1 id="month-header" class="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 text-center mx-4 flex-grow"></h1>
+                <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200 flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
             </div>
-            <!-- <p class="mt-2 text-lg text-gray-600">Track your daily prayers with ease klke.</p> -->
-                <div class="mt-6 flex justify-center space-x-4">
-                    <button id="monthly-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-active">Monthly View</button>
-                    <button id="annual-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-inactive">Annual View</button>
-                </div>
-            </header>
+            <div class="mt-4 flex justify-center space-x-4">
+                <button id="monthly-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-active">Monthly View</button>
+                <button id="annual-view-btn" class="px-6 py-2 rounded-full font-semibold shadow-md transition-colors btn-inactive">Annual View</button>
+            </div>
+        </header>
 
             <main id="prayer-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">
                 <!-- Day cards will be dynamically injected here -->
@@ -89,7 +88,7 @@
     <div id="update-modal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Update Available</h2>
-            <p class="text-gray-600 mb-6">A new version of the app is ready. Refresh to get the latest features.</p>
+            <p class="text-gray-600 mb-6">A new version of the app is launched. Refresh to get the latest features.</p>
             <button id="reload-button" class="w-full px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-lg font-semibold transition-colors shadow-md flex items-center justify-center">
                 <span class="button-text">Refresh and Update</span>
                 <svg class="spinner hidden h-5 w-5 ml-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

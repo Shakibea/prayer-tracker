@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function renderAnnualView(year) {
         annualGrid.innerHTML = '';
-        monthHeader.textContent = `Annual Overview - ${year}`;
+        monthHeader.textContent = year;
 
         const today = new Date();
         const monthPromises = [];
