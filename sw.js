@@ -1,4 +1,4 @@
-const CACHE_NAME = 'prayer-tracker-cache-v8'; // Incremented cache version
+const CACHE_NAME = 'prayer-tracker-cache-v12'; // Incremented cache version
 const urlsToCache = [
   './',
   './index.html',

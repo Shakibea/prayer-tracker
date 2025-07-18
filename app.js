@@ -19,33 +19,59 @@ function handleServiceWorkerUpdates() {
         }).catch(error => {
             console.error('Error during service worker registration:', error);
         });
-
-        let refreshing;
-        // Detects when the new service worker has taken control and reloads the page
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            window.location.reload();
-            refreshing = true;
-        });
     }
 }
 
 function showUpdateBanner(registration) {
-    const updateBanner = document.getElementById('update-banner');
+    const updateModal = document.getElementById('update-modal');
     const reloadButton = document.getElementById('reload-button');
 
-    if (!updateBanner || !reloadButton) return;
+    if (!updateModal || !reloadButton) return;
 
-    updateBanner.classList.remove('hidden');
+    updateModal.classList.add('visible');
+    reloadButton.disabled = false; // Explicitly enable the button
 
     reloadButton.onclick = () => {
-        // Send a message to the waiting service worker to skip waiting
+        const buttonText = reloadButton.querySelector('.button-text');
+        const spinner = reloadButton.querySelector('.spinner');
+
+        // Show loading state
+        reloadButton.disabled = true;
+        if (buttonText) buttonText.classList.add('hidden');
+        if (spinner) spinner.classList.remove('hidden');
+
+        // Set a flag in sessionStorage to show the "Completed" popup after reload.
+        sessionStorage.setItem('update-reloading', 'true');
+        
+        // Tell the new worker to activate.
         registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+
+        // Force a reload after a 1-second delay to ensure the new service worker has taken over.
+        // This is a robust fallback for browsers where the 'controllerchange' event is unreliable.
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     };
+}
+
+function showCompletedPopup() {
+    const completedPopup = document.getElementById('completed-popup');
+    if (completedPopup) {
+        completedPopup.classList.add('visible');
+        setTimeout(() => {
+            completedPopup.classList.remove('visible');
+        }, 2000); // Hide after 2 seconds
+    }
 }
 
 // Initialize the service worker update handling
 handleServiceWorkerUpdates();
+
+// Check if the page was just reloaded for an update.
+if (sessionStorage.getItem('update-reloading') === 'true') {
+    sessionStorage.removeItem('update-reloading');
+    showCompletedPopup();
+}
 
 // --- Original App Logic ---
 document.addEventListener('DOMContentLoaded', function () {

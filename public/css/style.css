@@ -1,0 +1,138 @@
+/* Custom styles for the Prayer Tracker app */
+
+/* Update Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Update Modal Content */
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    max-width: 90%;
+    width: 320px;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.visible .modal-content {
+    transform: scale(1);
+}
+
+/* Completed Popup */
+.completed-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.completed-popup.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.completed-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #10b981; /* Emerald-500 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.completed-circle svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+}
+
+/* Component and Button Styles */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.prayer-button {
+    transition: all 0.2s ease-in-out;
+    -webkit-tap-highlight-color: transparent; /* Remove default tap highlight */
+    touch-action: manipulation; /* Improve touch responsiveness */
+}
+
+.prayer-button:not(.checked):hover {
+    background-color: #d1d5db; /* gray-300 */
+}
+
+.prayer-button:active {
+    transform: scale(0.95);
+}
+
+.prayer-button .check-icon {
+    transform: scale(0.5);
+    opacity: 0;
+    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.prayer-button.checked {
+    background-color: #10b981; /* Emerald-500 */
+    color: white;
+    font-weight: 500;
+}
+
+.prayer-button.checked:hover {
+    background-color: #059669; /* Emerald-600 */
+}
+
+.prayer-button.checked .check-icon {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.btn-active {
+    background-color: #10b981; /* Emerald-500 */
+    color: white;
+}
+
+.btn-inactive {
+    background-color: #e5e7eb; /* gray-200 */
+    color: #4b5563; /* gray-800 */
+}
+
+#reload-button:disabled {
+    background-color: #047857; /* Emerald-700 */
+    cursor: not-allowed;
+}
